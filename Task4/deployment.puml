@@ -1,0 +1,47 @@
+@startuml
+skinparam defaultFontSize 11
+skinparam backgroundColor #FFFFFF
+title Deployment Diagram — Africa Delivery (регионы развёртывания)
+
+node "Регион: Нигерия (локальный провайдер)" as NG {
+  node "PostgreSQL (персональные данные)" as NGDB
+  node "Сервисы нигерийского трафика" as NGSVC
+}
+
+node "Регион: ЮАР (AWS af-south-1, Кейптаун)" as ZA {
+  node "API Gateway" as ZAGW
+  node "Сервисы каталога / заказов" as ZASVC
+  node "PostgreSQL (реплика) + Redis" as ZADB
+  node "S3 / CDN" as ZACDN
+}
+
+node "Регион: Кения (AWS/GCP или локальный)" as KE {
+  node "Сервисы оплаты (M-Pesa)" as KEPAY
+  node "Кэш + реплика данных" as KEDB
+}
+
+node "Edge / CDN" as Edge {
+  node "CloudFront / CDN" as CDN
+}
+
+node "Внешние SaaS-партнёры" as EXT {
+  node "M-Pesa API" as MP
+  node "Flutterwave / Paystack" as FP
+  node "Sendbox / Sendy" as LG
+  node "WhatsApp Business API" as WA
+  node "SMS/USSD-шлюз" as SMS
+}
+
+CDN --> ZAGW : HTTPS
+ZAGW --> ZASVC : внутренние вызовы
+ZASVC --> ZADB
+ZASVC --> KEPAY : оркестрация оплаты
+KEPAY --> KEDB
+ZASVC --> NGDB : запись/чтение нигерийских данных
+NGDB --> NGSVC
+KEPAY --> MP
+ZASVC --> FP
+ZASVC --> LG
+ZASVC --> WA
+ZASVC --> SMS
+@enduml

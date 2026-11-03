@@ -1,0 +1,46 @@
+@startuml
+!include <C4/C4_Container>
+skinparam defaultFontSize 12
+skinparam backgroundColor #FFFFFF
+
+title C4 Container Diagram — Africa Delivery (контейнеры по регионам развёртывания)
+
+Person(customer, "Покупатель", "")
+Person(seller, "Продавец", "")
+
+System_Boundary(ng, "Регион: Нигерия (локальный провайдер)") {
+  Container(ngdb, "PostgreSQL (персональные данные)", "PostgreSQL", "Профили и транзакции нигерийцев — только здесь")
+  Container(ngsvc, "Сервисы нигерийского трафика", "Go", "Обработка заказов/оплаты Нигерии")
+}
+
+System_Boundary(za, "Регион: ЮАР/Кения (AWS af-south-1)") {
+  Container(api, "API Gateway", "Go", "Единая точка входа, аутентификация")
+  Container(catalog, "Сервис каталога", "Go + PostgreSQL", "Товары, поиск, категории")
+  Container(orders, "Сервис заказов", "Go + PostgreSQL", "Корзина, заказы, статусы")
+  Container(payments, "Сервис оплаты", "Go + PostgreSQL", "Оркестрация M-Pesa/Flutterwave/Paystack")
+  Container(notif, "Сервис уведомлений", "Go + Redis", "SMS, push, WhatsApp")
+  Container(cache, "Redis (кеш)", "Redis", "Кеш каталога и сессий")
+}
+
+System_Boundary(ext, "Внешние SaaS-партнёры") {
+  System_Ext(mpesa, "M-Pesa", "Платежи, Кения")
+  System_Ext(flutterwave, "Flutterwave", "Платежи, Нигерия")
+  System_Ext(sendbox, "Sendbox / Sendy", "Логистика")
+  System_Ext(smsgw, "SMS / USSD-шлюз", "Уведомления")
+  System_Ext(whatsapp, "WhatsApp Business API", "Онбординг продавцов")
+}
+
+Rel(customer, api, "Использует приложение/PWA")
+Rel(seller, whatsapp, "Онбординг без кабинета")
+Rel(api, catalog, "Каталог")
+Rel(api, orders, "Заказы")
+Rel(api, payments, "Оплата")
+Rel(orders, notif, "События уведомлений")
+Rel(catalog, cache, "Кеш товаров")
+Rel(payments, mpesa, "Платёж M-Pesa")
+Rel(payments, flutterwave, "Платёж картой/переводом")
+Rel(orders, sendbox, "Доставка")
+Rel(notif, smsgw, "SMS/USSD")
+Rel(orders, ngsvc, "Синхронизация нигерийских данных")
+Rel(ngsvc, ngdb, "Запись/чтение")
+@enduml

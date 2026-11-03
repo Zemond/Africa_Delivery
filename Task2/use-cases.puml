@@ -1,0 +1,43 @@
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+skinparam defaultFontSize 12
+skinparam backgroundColor #FFFFFF
+title Use Case Diagram — Ключевые сценарии MVP
+
+actor "Покупатель" as Customer
+actor "Продавец" as Seller
+actor "Инвестор" as Investor
+actor "Платёжный провайдер" as PSP <<external>>
+actor "Логистический партнёр" as Logistics <<external>>
+
+rectangle "Africa Delivery Marketplace (MVP)" {
+  usecase "Регистрация / вход" as UC1
+  usecase "Просмотр каталога и поиск" as UC2
+  usecase "Оформление заказа" as UC3
+  usecase "Оплата заказа" as UC4
+  usecase "Отслеживание заказа" as UC5
+  usecase "Оформление возврата" as UC6
+  usecase "Онбординг продавца (WhatsApp)" as UC7
+  usecase "Загрузка товаров" as UC8
+  usecase "Получение выплат" as UC9
+  usecase "Уведомления (SMS / push)" as UC10
+  usecase "Live-дашборд руководства" as UC11
+}
+
+Customer --> UC1
+Customer --> UC2
+Customer --> UC3
+Customer --> UC4
+Customer --> UC5
+Customer --> UC6
+Seller --> UC7
+Seller --> UC8
+Seller --> UC9
+Investor --> UC11
+UC3 ..> UC4 : <<include>>
+UC4 ..> PSP : платёж
+UC5 ..> Logistics : трекинг
+UC10 --> Customer
+UC10 --> Seller
+@enduml
