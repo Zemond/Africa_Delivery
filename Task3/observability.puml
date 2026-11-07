@@ -19,8 +19,8 @@ rectangle "Africa Delivery (рантайм)" as Runtime {
   component "Базы данных" as DB
 }
 
-rectangle "Наблюдаемость" as Obs {
-  component "OpenTelemetry SDK/агенты" as OTel
+rectangle "Наблюдаемость (в каждой стране; логи и трейсы NG — только в Нигерии)" as Obs {
+  component "OpenTelemetry SDK + Collector страны\n(маскирование ПД, удаление Authorization/Cookie)" as OTel
   component "Prometheus (метрики)" as Prom
   component "Loki (логи)" as Loki
   component "Jaeger (трейсинг)" as Jaeger
@@ -44,7 +44,8 @@ MQ --> OTel : метрики
 DB --> OTel : метрики
 OTel --> Prom : метрики (4 золотых сигнала)
 OTel --> Jaeger : трейсы
-SVC --> Loki : логи (stdout/stderr)
+SVC --> OTel : логи (stdout/stderr)
+OTel --> Loki : логи без ПД
 Loki --> Grafana
 Prom --> Grafana
 Jaeger --> Grafana

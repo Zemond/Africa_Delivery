@@ -1,47 +1,98 @@
 @startuml
 skinparam defaultFontSize 11
 skinparam backgroundColor #FFFFFF
-title Deployment Diagram — Africa Delivery (регионы развёртывания)
+title Deployment Diagram — Africa Delivery (вход в каждой стране, маршруты переключения)
 
-node "Регион: Нигерия (локальный провайдер)" as NG {
-  node "PostgreSQL (персональные данные)" as NGDB
-  node "Сервисы нигерийского трафика" as NGSVC
-}
+actor "Покупатель\n(Нигерия)" as BNG
+actor "Покупатель\n(Кения)" as BKE
+actor "Покупатель\n(ЮАР, после запуска)" as BZA
 
-node "Регион: ЮАР (AWS af-south-1, Кейптаун)" as ZA {
-  node "API Gateway" as ZAGW
-  node "Сервисы каталога / заказов" as ZASVC
-  node "PostgreSQL (реплика) + Redis" as ZADB
-  node "S3 / CDN" as ZACDN
-}
-
-node "Регион: Кения (AWS/GCP или локальный)" as KE {
-  node "Сервисы оплаты (M-Pesa)" as KEPAY
-  node "Кэш + реплика данных" as KEDB
-}
+node "GSLB: geo-DNS + health checks\n(2 anycast DNS-провайдера, вне af-south-1)" as GSLB
 
 node "Edge / CDN" as Edge {
-  node "CloudFront / CDN" as CDN
+  node "CDN (статика и медиа каталога)" as CDN
+}
+
+node "Нигерия — ЦОД-1 (локальный провайдер, основной)" as NG1 {
+  node "NG-вход (ingress + API gateway)" as NGGW
+  node "Приложение (инстанс Нигерии)" as NGSVC
+  node "PostgreSQL (персональные данные NG)" as NGDB
+  node "Каталог: read-реплика + Redis" as NGCAT
+}
+
+node "Нигерия — ЦОД-2 (второй локальный провайдер, warm)" as NG2 {
+  node "NG-вход (резерв) + приложение" as NGGW2
+  node "PostgreSQL (реплика внутри Нигерии)" as NGDB2
+}
+
+node "Кения — площадка-1 (Найроби, основная)" as KE1 {
+  node "KE-вход (ingress + API gateway)" as KEGW
+  node "Приложение (инстанс Кении, оплата M-Pesa)" as KESVC
+  node "PostgreSQL (платежи и заказы KE,\nserving-копия профилей)" as KEDB
+  node "Каталог: read-реплика + Redis" as KECAT
+}
+
+node "Кения — площадка-2 (warm)" as KE2 {
+  node "KE-вход (резерв) + приложение" as KEGW2
+  node "PostgreSQL (реплика внутри Кении)" as KEDB2
+}
+
+node "ЮАР — AWS af-south-1 (Кейптаун, основной)" as ZA {
+  node "ZA-вход (ingress + API gateway)" as ZAGW
+  node "Приложение: ЮАР, кабинет продавца,\nбэк-офис, аналитика" as ZASVC
+  node "PostgreSQL: каталог (первичный),\nпрофили ЮАР и Кении + Redis" as ZADB
+  node "S3 (медиа каталога)" as ZAS3
+}
+
+node "ЮАР — GCP africa-south1 (warm standby)" as GCP {
+  node "ZA-вход (резерв) + приложение" as GCPGW
+  node "PostgreSQL (реплика) + GCS" as GCPDB
 }
 
 node "Внешние SaaS-партнёры" as EXT {
   node "M-Pesa API" as MP
   node "Flutterwave / Paystack" as FP
   node "Sendbox / Sendy" as LG
-  node "WhatsApp Business API" as WA
   node "SMS/USSD-шлюз" as SMS
+  node "WhatsApp Business API" as WA
 }
 
-CDN --> ZAGW : HTTPS
-ZAGW --> ZASVC : внутренние вызовы
+BNG --> GSLB : ng.api
+BKE --> GSLB : ke.api
+BZA --> GSLB : za.api
+GSLB --> NGGW : основной вход
+GSLB ..> NGGW2 : переключение\n(внутри Нигерии)
+GSLB --> KEGW : основной вход
+GSLB ..> KEGW2 : переключение\n(внутри Кении)
+GSLB --> ZAGW : основной вход
+GSLB ..> GCPGW : переключение\n(внутри ЮАР)
+
+BNG --> CDN : статика
+BKE --> CDN : статика
+CDN --> ZAS3 : origin
+CDN ..> GCPDB : origin при отказе
+
+NGGW --> NGSVC
+NGSVC --> NGDB
+NGSVC --> NGCAT
+NGDB ..> NGDB2 : streaming-репликация
+KEGW --> KESVC
+KESVC --> KEDB
+KESVC --> KECAT
+KEDB ..> KEDB2 : streaming-репликация
+ZAGW --> ZASVC
 ZASVC --> ZADB
-ZASVC --> KEPAY : оркестрация оплаты
-KEPAY --> KEDB
-ZASVC --> NGDB : запись/чтение нигерийских данных
-NGDB --> NGSVC
-KEPAY --> MP
-ZASVC --> FP
-ZASVC --> LG
-ZASVC --> WA
-ZASVC --> SMS
+ZADB ..> GCPDB : репликация
+ZADB ..> NGCAT : каталог (публичные данные)
+ZADB ..> KECAT : каталог (публичные данные)
+ZADB ..> KEDB : serving-копия профилей KE
+
+KESVC --> MP : платёж M-Pesa
+KESVC --> FP : резерв (карта)
+NGSVC --> FP : платёж (Нигерия)
+NGSVC --> LG
+KESVC --> LG
+NGSVC --> SMS
+KESVC --> SMS
+ZASVC --> WA : онбординг продавцов
 @enduml

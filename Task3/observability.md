@@ -19,7 +19,13 @@
 
 ## Логи
 
-Структурированные JSON-логи со `trace_id` и `order_id`. Уровни: info/warn/error. Централизованный сбор в Loki, хранение 30 дней (горячие — 7 дней). Красные флаги — по паттернам ошибок платежей и 5xx.
+Структурированные JSON-логи со `trace_id` и `order_id`. Уровни: info/warn/error. Сбор в Loki той страны, где обслуживается субъект: нигерийские логи и трейсы хранятся только в Нигерии, кенийские и южноафриканские — в стране площадки (`Task4/data-residency-map.md`). В общий Grafana уходят только агрегированные метрики без идентификаторов пользователей. Хранение 30 дней (горячие — 7 дней). Красные флаги — по паттернам ошибок платежей и 5xx.
+
+Персональные данные в логах и трейсах:
+
+- тела запросов и ответов не пишутся; OTel Collector страны маскирует телефон, email, имя, адрес и номер карты и удаляет заголовки `Authorization` и `Cookie`;
+- пользователь идентифицируется только псевдонимным `user_id` (UUID) — без телефона и имени;
+- `trace_id` и `request_id` случайные (W3C Trace Context / UUIDv4) и не выводятся из телефона или номера заказа; baggage не несёт атрибутов пользователя.
 
 ## Распределённая трассировка
 
@@ -38,9 +44,9 @@ OpenTelemetry сквозь API Gateway → сервисы → БД/внешни�
 
 ## Связь метрик с SLI
 
-- SLI «доступность каталога» = `sum(rate(http_requests_total{status!~"5.."}[30d])) / sum(rate(http_requests_total[30d]))` (Prometheus).
+- SLI «доступность каталога» = `sum by (country) (rate(http_requests_total{status=~"2.."}[30d])) / sum by (country) (rate(http_requests_total[30d]))` (Prometheus, по каждой стране; при отказе площадки — по внешним проверкам, `slo/catalog.md`).
 - SLI «задержка P99» = `histogram_quantile(0.99, http_request_duration_seconds_bucket)`.
-- SLI «успешность оплаты» = `payment_init_success / payment_init_total`.
+- SLI «успешность оплаты» = `sum(rate(payment_attempts_final_total{status="SUCCESS"}[30d])) / sum(rate(payment_attempts_final_total{status!="BUSINESS_DECLINED"}[30d]))` — business decline исключён из знаменателя, попытка учитывается по итоговому статусу (`slo/payments.md`).
 
 Эти же выражения используются в алертах: при исчерпании бюджета ошибок (доступность ниже SLO) автоматически создаётся инцидент.
 
