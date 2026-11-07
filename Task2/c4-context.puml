@@ -1,0 +1,33 @@
+@startuml
+!include <C4/C4_Context>
+skinparam defaultFontSize 12
+skinparam backgroundColor #FFFFFF
+
+title C4 Context Diagram — Africa Delivery
+
+Person(customer, "Покупатель", "Покупает товары через приложение / PWA / USSD")
+Person(seller, "Продавец", "Малый и средний бизнес, регистрируется и продаёт")
+Person(operator, "Сотрудник поддержки / Модератор", "Разбирает споры, возвраты, модерация")
+
+System(ad, "Africa Delivery Marketplace", "Маркетплейс: каталог, заказы, оплата, доставка, уведомления")
+
+System_Ext(mpesa, "M-Pesa", "Мобильные деньги, Кения")
+System_Ext(flutterwave, "Flutterwave", "Платёжный агрегатор, Нигерия")
+System_Ext(paystack, "Paystack", "Платёжный агрегатор, Нигерия")
+System_Ext(sendbox, "Sendbox", "Логистика, Нигерия")
+System_Ext(sendy, "Sendy", "Логистика, Кения")
+System_Ext(whatsapp, "WhatsApp Business API", "Чат и онбординг продавцов")
+System_Ext(gateway, "SMS / USSD-шлюз", "Уведомления и офлайн-заказы")
+
+Rel(customer, ad, "Смотрит товары, оформляет заказ, платит")
+Rel(seller, ad, "Загружает товары, получает выплаты")
+Rel(operator, ad, "Модерация, споры, возвраты")
+
+Rel(ad, mpesa, "Приём платежа M-Pesa")
+Rel(ad, flutterwave, "Приём платежа картой/переводом")
+Rel(ad, paystack, "Приём платежа картой")
+Rel(ad, sendbox, "Создание и отслеживание доставки")
+Rel(ad, sendy, "Создание и отслеживание доставки")
+Rel(ad, whatsapp, "Онбординг и чат с продавцом")
+Rel(ad, gateway, "SMS/USSD уведомления и заказы")
+@enduml

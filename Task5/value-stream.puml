@@ -1,0 +1,36 @@
+@startuml
+skinparam defaultFontSize 11
+skinparam backgroundColor #FFFFFF
+title Value Stream — Africa Delivery (от заявки продавца до выплаты)
+
+left to right direction
+
+rectangle "Привлечение\nпокупателей" as V1 #F5F5F5
+rectangle "Онбординг\nпродавца" as V2 #F5F5F5
+rectangle "Наполнение\nкаталога" as V3 #F5F5F5
+rectangle "Поиск\nи выбор" as V4 #F5F5F5
+rectangle "Оформление\nзаказа" as V5 #F5F5F5
+rectangle "Оплата" as V6 #F5F5F5
+rectangle "Доставка" as V7 #F5F5F5
+rectangle "Выплата\nпродавцу" as V8 #F5F5F5
+rectangle "Поддержка\nи возвраты" as V9 #F5F5F5
+
+V1 --> V2
+V2 --> V3
+V3 --> V4
+V4 --> V5
+V5 --> V6
+V6 --> V7
+V7 --> V8
+V8 --> V9
+
+note bottom of V1 : Campaign / Acquisition
+note bottom of V2 : Seller Onboarding\n(WhatsApp/USSD)
+note bottom of V3 : Catalog Management
+note bottom of V4 : Search & Discovery
+note bottom of V5 : Order Management
+note bottom of V6 : Payments
+note bottom of V7 : Fulfillment (Sendbox/Sendy)
+note bottom of V8 : Payout / Settlement
+note bottom of V9 : Support & Returns
+@enduml

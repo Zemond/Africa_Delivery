@@ -1,0 +1,16 @@
+@startuml
+skinparam componentStyle rectangle
+skinparam defaultFontSize 12
+skinparam backgroundColor #FFFFFF
+title Матрица «Влияние / Интерес» — Africa Delivery
+
+rectangle "УДОВЛЕТВОРЯТЬ\n(высокое влияние, низкий интерес)\n\n• CTO Раджеш Менон\n• Head of Marketing София Алмейда" as TL #FFF2CC
+rectangle "КЛЮЧЕВЫЕ ИГРОКИ\n(высокое влияние, высокий интерес)\n\n• Инвестор К. Орлов\n• CEO Марк Лефевр\n• CFO Анна Вебер" as TR #D5E8D4
+rectangle "НАБЛЮДАТЬ\n(низкое влияние, низкий интерес)\n\n• Продавцы\n• Логистические партнёры" as BL #F2F2F2
+rectangle "ИНФОРМИРОВАТЬ\n(низкое влияние, высокий интерес)\n\n• Юрист Адаезе Нвосу\n• Регуляторы\n• Платёжные партнёры" as BR #DAE8FC
+
+TL -[hidden]right- TR
+BL -[hidden]right- BR
+TL -[hidden]down- BL
+TR -[hidden]down- BR
+@enduml

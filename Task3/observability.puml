@@ -1,0 +1,54 @@
+@startuml
+skinparam componentStyle rectangle
+skinparam defaultFontSize 12
+skinparam backgroundColor #FFFFFF
+title Стратегия наблюдаемости — схема сбора телеметрии
+
+actor "Пользователи" as Users
+
+rectangle "Приложения и клиенты" as Clients {
+  component "Мобильное приложение" as App
+  component "PWA" as PWA
+  component "USSD / SMS" as USSD
+}
+
+rectangle "Africa Delivery (рантайм)" as Runtime {
+  component "API Gateway" as GW
+  component "Сервисы (каталог/заказы/оплата)" as SVC
+  component "Очередь событий" as MQ
+  component "Базы данных" as DB
+}
+
+rectangle "Наблюдаемость (в каждой стране; логи и трейсы NG — только в Нигерии)" as Obs {
+  component "OpenTelemetry SDK + Collector страны\n(маскирование ПД, удаление Authorization/Cookie)" as OTel
+  component "Prometheus (метрики)" as Prom
+  component "Loki (логи)" as Loki
+  component "Jaeger (трейсинг)" as Jaeger
+  component "Grafana (дашборды)" as Grafana
+  component "Alertmanager" as Alert
+}
+
+Users --> App
+Users --> PWA
+Users --> USSD
+App --> GW : HTTP
+PWA --> GW : HTTP
+USSD --> GW : USSD
+GW --> SVC
+SVC --> MQ
+SVC --> DB
+
+SVC --> OTel : метрики/трейсы
+GW --> OTel : метрики/трейсы
+MQ --> OTel : метрики
+DB --> OTel : метрики
+OTel --> Prom : метрики (4 золотых сигнала)
+OTel --> Jaeger : трейсы
+SVC --> OTel : логи (stdout/stderr)
+OTel --> Loki : логи без ПД
+Loki --> Grafana
+Prom --> Grafana
+Jaeger --> Grafana
+Grafana --> Alert : правила
+Alert --> SVC : инцидент / дежурному
+@enduml

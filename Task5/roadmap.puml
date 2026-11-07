@@ -1,0 +1,31 @@
+@startgantt
+printscale weekly
+Project starts 2026-08-12
+saturday are closed
+sunday are closed
+
+-- Фаза 1: Фундамент (Месяц 1) --
+[ADR 1-4 и архитектура] lasts 2 weeks
+[Онбординг 6 контракторов] lasts 1 week
+[Каркас приложения и CI/CD] lasts 3 weeks
+[Интеграции: M-Pesa, Flutterwave, Sendbox] lasts 4 weeks
+
+-- Фаза 2: MVP (Месяц 2) --
+[Каталог: 5000 SKU, 100 продавцов] lasts 4 weeks
+[Checkout и оплата] lasts 4 weeks
+[Уведомления SMS/push] lasts 3 weeks
+[Личный кабинет покупателя] lasts 3 weeks
+[Страницы в магазинах приложений] lasts 2 weeks
+[Запуск 15 октября] happens at 2026-10-15
+
+-- Фаза 3: Рост (Месяц 6) --
+[Кабинет продавца и аналитика] starts 2026-10-16 and lasts 8 weeks
+[Track & trace, возвраты] starts 2026-10-16 and lasts 8 weeks
+[Антифрод на ПВЗ] starts 2026-10-16 and lasts 8 weeks
+[Локализация EN/FR/Swahili] starts 2026-11-01 and lasts 10 weeks
+
+-- Фаза 4: Масштаб (Месяц 12) --
+[Выход в 5 стран] starts 2027-02-01 and lasts 12 weeks
+[B2B-режим] starts 2027-04-01 and lasts 12 weeks
+[1M+ пользователей] happens at 2027-08-12
+@endgantt

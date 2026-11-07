@@ -1,0 +1,66 @@
+@startuml
+!include <C4/C4_Container>
+skinparam defaultFontSize 12
+skinparam backgroundColor #FFFFFF
+
+title C4 Container Diagram — Africa Delivery (вход в каждой стране, движение персональных данных)
+
+Person(customer_ng, "Покупатель (Нигерия)", "")
+Person(customer_ke, "Покупатель (Кения)", "")
+Person(seller, "Продавец", "")
+
+System_Ext(gslb, "GSLB (geo-DNS + health checks)", "2 anycast DNS-провайдера вне af-south-1. Хост — по стране аккаунта, переключение — на резерв в той же стране")
+
+System_Boundary(ng, "Нигерия (локальный провайдер: ЦОД-1 основной, ЦОД-2 резерв)") {
+  Container(ngin, "NG-вход", "Ingress + API gateway", "Проверяет непрозрачный session_token по хранилищу сессий в Нигерии. Персональные данные не покидают Нигерию")
+  Container(ngsvc, "Приложение (инстанс Нигерии)", "Go", "Заказы, оплата, уведомления для Нигерии")
+  ContainerDb(ngdb, "PostgreSQL (персональные данные)", "PostgreSQL", "Профили, транзакции и заказы нигерийцев; реплика — в ЦОД-2 в Нигерии")
+  ContainerDb(ngcat, "Каталог: read-реплика + Redis", "PostgreSQL + Redis", "Публичные данные (товары, цены)")
+}
+
+System_Boundary(ke, "Кения (площадка-1 основная, площадка-2 резерв)") {
+  Container(kein, "KE-вход", "Ingress + API gateway", "Проверяет непрозрачный session_token по хранилищу сессий в Кении")
+  Container(kesvc, "Приложение (инстанс Кении)", "Go", "Заказы, оплата M-Pesa, уведомления для Кении")
+  ContainerDb(kedb, "PostgreSQL (Кения)", "PostgreSQL", "Платежи и заказы кенийцев (первично), serving-копия профилей (KICA); реплика — на площадке-2")
+  ContainerDb(kecat, "Каталог: read-реплика + Redis", "PostgreSQL + Redis", "Публичные данные (товары, цены)")
+}
+
+System_Boundary(za, "ЮАР: AWS af-south-1 (основной), GCP africa-south1 (warm standby)") {
+  Container(zain, "ZA-вход", "Ingress + API gateway", "Трафик ЮАР (после запуска), кабинет продавца, бэк-офис")
+  Container(catalog, "Сервис каталога", "Go + PostgreSQL", "Первичная копия каталога — публичные данные, не персональные")
+  ContainerDb(zadb, "PostgreSQL (профили)", "PostgreSQL", "Профили ЮАР; первичная копия профилей кенийцев")
+}
+
+System_Boundary(ext, "Внешние SaaS-партнёры") {
+  System_Ext(mpesa, "M-Pesa", "Платежи, Кения")
+  System_Ext(flutterwave, "Flutterwave / Paystack", "Платежи, Нигерия; резервный способ для Кении")
+  System_Ext(sendbox, "Sendbox / Sendy", "Логистика")
+  System_Ext(smsgw, "SMS / USSD-шлюз", "Уведомления")
+  System_Ext(whatsapp, "WhatsApp Business API", "Онбординг продавцов")
+}
+
+Rel(customer_ng, gslb, "ng.api")
+Rel(customer_ke, gslb, "ke.api")
+Rel(gslb, ngin, "Основной вход; резерв — ЦОД-2 в Нигерии")
+Rel(gslb, kein, "Основной вход; резерв — площадка-2 в Кении")
+Rel(gslb, zain, "za.api: af-south-1; резерв — GCP africa-south1")
+Rel(seller, whatsapp, "Онбординг без кабинета")
+Rel(ngin, ngsvc, "Запрос (session_token + request_id)")
+Rel(ngsvc, ngdb, "Персональные данные — только в Нигерии")
+Rel(ngsvc, ngcat, "Чтение каталога")
+Rel(kein, kesvc, "Запрос (session_token + request_id)")
+Rel(kesvc, kedb, "Платежи, заказы, чтение профиля")
+Rel(kesvc, kecat, "Чтение каталога")
+Rel(zain, catalog, "Редактирование каталога")
+Rel(catalog, ngcat, "Репликация каталога (публичные данные)")
+Rel(catalog, kecat, "Репликация каталога (публичные данные)")
+Rel(zadb, kedb, "Serving-копия профилей кенийцев")
+Rel(ngsvc, flutterwave, "Платёж (Нигерия)")
+Rel(kesvc, mpesa, "Платёж M-Pesa (Кения)")
+Rel(kesvc, flutterwave, "Резервный способ (карта)")
+Rel(ngsvc, sendbox, "Доставка (Нигерия)")
+Rel(kesvc, sendbox, "Доставка (Кения)")
+Rel(ngsvc, smsgw, "Уведомления (номер + шаблон, номер не логируется)")
+Rel(kesvc, smsgw, "Уведомления")
+Rel(zain, whatsapp, "Уведомления продавцу")
+@enduml
